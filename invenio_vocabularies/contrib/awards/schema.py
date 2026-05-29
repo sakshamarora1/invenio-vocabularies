@@ -3,8 +3,6 @@
 
 """Awards schema."""
 
-from functools import partial
-
 from invenio_i18n import lazy_gettext as _
 from marshmallow import (
     EXCLUDE,
@@ -52,8 +50,24 @@ class AwardOrganizationRelationSchema(ContribVocabularyRelationSchema):
     scheme = SanitizedUnicode()
     identifiers = IdentifierSet(
         fields.Nested(
-            partial(
-                IdentifierSchema,
+            IdentifierSchema(
+                allowed_schemes=affiliation_schemes,
+                identifier_required=False,
+            )
+        ),
+        dump_only=True,
+    )
+
+    @validates_schema
+    def validate_relation_schema(self, data, **kwargs):
+        """Accept the legacy free-text `organization` key as alternative to `name`."""
+        if data.get("organization"):
+            return
+        super().validate_relation_schema(data, **kwargs)
+
+    identifiers = IdentifierSet(
+        fields.Nested(
+            lambda: IdentifierSchema(
                 allowed_schemes=affiliation_schemes,
                 identifier_required=False,
             )
@@ -74,11 +88,7 @@ class AwardSchema(BaseVocabularySchema, ModePIDFieldVocabularyMixin):
 
     identifiers = IdentifierSet(
         fields.Nested(
-            partial(
-                IdentifierSchema,
-                allowed_schemes=award_schemes,
-                identifier_required=False,
-            )
+            IdentifierSchema(allowed_schemes=award_schemes, identifier_required=False)
         )
     )
     number = SanitizedUnicode(
@@ -116,11 +126,7 @@ class AwardRelationSchema(Schema):
     title = i18n_strings
     identifiers = IdentifierSet(
         fields.Nested(
-            partial(
-                IdentifierSchema,
-                allowed_schemes=award_schemes,
-                identifier_required=False,
-            )
+            IdentifierSchema(allowed_schemes=award_schemes, identifier_required=False)
         )
     )
     acronym = SanitizedUnicode()
